@@ -93,6 +93,9 @@ if __name__ == "__main__":
         # Convert the image back to BGR for displaying
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+        # Flip the image
+        image = cv2.flip(image, 1)
+
         # Display the annotated image
         cv2.imshow('Hand Tracking', image)
         if cv2.waitKey(5) & 0xFF == 27:
