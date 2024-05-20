@@ -62,8 +62,8 @@ def custom_processing(img_source_generator):
 
 def main():
     # change according to your settings
-    width = 1280
-    height = 720
+    width = 640
+    height = 480
     fps = 30
     
     # Define your virtual camera
