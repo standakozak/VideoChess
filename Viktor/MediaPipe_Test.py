@@ -35,6 +35,9 @@ with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5) a
                 # Print or use the pixel coordinates
                 print("Index Finger Tip:", ix, iy)
 
+        # Flip the image
+        image = cv2.flip(image, 1)
+
         # Display the annotated image
         cv2.imshow('Hand Tracking', image)
         if cv2.waitKey(5) & 0xFF == 27:
