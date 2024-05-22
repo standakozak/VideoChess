@@ -14,11 +14,14 @@ from mediapipe.tasks.python import vision
 
 ## Change path based on your current repository
 # The path you see in Terminal + MODEL_PATH should get you to the file
-MODEL_PATH = "ProjektArbeit/VideoChess/Stani/gesture_recognizer.task"
+
+MODEL_PATH = "Stani/gesture_recognizer.task"
 #MODEL_PATH = "gesture_recognizer.task"
 
-EMPTY_HAND_GESTURES = ["Open_Palm", "Pointing_Up"]  # "Thumb_Up"
-FULL_HAND_GESTURES = ["Closed_Fist", ] # Maybe also "None"?
+# Recognizes: Thumb_Up, Thumb_Down, Open_Palm, Pointing_Up, Closed_Fist, Victory, Love, None
+
+EMPTY_HAND_GESTURES = ["Open_Palm"]
+FULL_HAND_GESTURES = ["Pointing_Up"]
 RESET_GESTURES = ["Victory"]
 
 class HandGestureState:
@@ -40,28 +43,37 @@ GESTURE_STATES_TO_NAMES = {
     HandGestureState.RESET: RESET_GESTURES
 }
 
+class GestureState:
+    def __init__(self, state, gesture):
+        self.state = state
+        self.gesture = gesture
 
-def resolve_hand_gesture_state_change(current_gesture_state, previous_gesture_state):
-    if current_gesture_state["state"] != previous_gesture_state["state"]:
-        print("New gesture:", current_gesture_state["gesture"])
-        print(GESTURE_STATES_NAMES[current_gesture_state["state"]])
+
+
+def resolve_hand_gesture_state_change(
+        current_gesture_state: GestureState, previous_gesture_state: GestureState
+    ) -> bool:
+    if current_gesture_state.state != previous_gesture_state.state:
+        print("New gesture:", current_gesture_state.gesture)
+        print(GESTURE_STATES_NAMES[current_gesture_state.state])
     
-    return current_gesture_state["state"] != previous_gesture_state["state"]
+    return current_gesture_state.state != previous_gesture_state.state
 
-def get_gesture_and_state(recognition_result):
+
+def get_gesture_and_state(recognition_result) -> GestureState:
     if recognition_result is None or len(recognition_result.gestures) == 0:
-        return {"state": HandGestureState.NONE, "gesture": ""}
+        return GestureState(HandGestureState.NONE, "")
 
     top_gesture = recognition_result.gestures[0][0]
 
     for state, state_gestures in GESTURE_STATES_TO_NAMES.items():
         if top_gesture.category_name in state_gestures:
-            return {"state": state, "gesture": top_gesture.category_name}
+            return GestureState(state, top_gesture.category_name)
     
-    return {"state": HandGestureState.NONE, "gesture": ""}
+    return GestureState(HandGestureState.NONE, "")
 
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     base_options = python.BaseOptions(model_asset_path=MODEL_PATH)
     
     options = vision.GestureRecognizerOptions(base_options=base_options)
