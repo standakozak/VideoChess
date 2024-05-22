@@ -6,12 +6,88 @@ def draw_virtual_chessboard(frame, width, height, square_size=50, board_size=(8,
     start_y = height - int((height/2)+((board_size[0]/2)*square_size))
     rows, cols = board_size
     
-    for i in range(rows):
-        for j in range(cols):
-            top_left = (start_x + j * square_size, start_y + i * square_size)
-            bottom_right = (start_x + (j + 1) * square_size, start_y + (i + 1) * square_size)
-            color = (0, 0, 0) if (i + j) % 2 == 0 else (255, 255, 255)
+    coordinates = np.zeros((rows, cols, 2, 2), dtype=int)
+
+    for r in range(rows):
+        for c in range(cols):
+            top_left = (start_x + c * square_size, start_y + r * square_size)
+            bottom_right = (start_x + (c + 1) * square_size, start_y + (r + 1) * square_size)
+            color = (0, 0, 0) if (c + r) % 2 == 0 else (255, 255, 255)
             cv2.rectangle(frame, top_left, bottom_right, color, -1)
+
+            coordinates[r, c] = [top_left, bottom_right]
+    # print(coordinates)
+    start_position(coordinates)
+    quit()
+
+def start_position(cords):
+    piece_img = {
+        'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
+        'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
+        'N': cv2.imread(r'Samuel\img\white\knight.png', cv2.IMREAD_UNCHANGED), 
+        'P': cv2.imread(r'Samuel\img\white\pawn.png', cv2.IMREAD_UNCHANGED),
+        'Q': cv2.imread(r'Samuel\img\white\queen.png', cv2.IMREAD_UNCHANGED), 
+        'R': cv2.imread(r'Samuel\img\white\rook.png', cv2.IMREAD_UNCHANGED),
+
+        'b': cv2.imread(r'Samuel\img\black\bishop.png', cv2.IMREAD_UNCHANGED), 
+        'k': cv2.imread(r'Samuel\img\black\king.png', cv2.IMREAD_UNCHANGED), 
+        'n': cv2.imread(r'Samuel\img\black\knight.png', cv2.IMREAD_UNCHANGED), 
+        'p': cv2.imread(r'Samuel\img\black\pawn.png', cv2.IMREAD_UNCHANGED),
+        'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
+        'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_UNCHANGED),
+    }
+
+    piece_positions = {
+        # White pieces
+        (0, 0): 'R',  
+        (0, 1): 'N',  
+        (0, 2): 'B',  
+        (0, 3): 'Q',  
+        (0, 4): 'K',  
+        (0, 5): 'B',  
+        (0, 6): 'N',  
+        (0, 7): 'R',  
+        (1, 0): 'P',  
+        (1, 1): 'P',  
+        (1, 2): 'P',  
+        (1, 3): 'P',  
+        (1, 4): 'P',  
+        (1, 5): 'P',  
+        (1, 6): 'P',  
+        (1, 7): 'P',  
+
+        # Black pieces
+        (7, 0): 'r',  
+        (7, 1): 'n',  
+        (7, 2): 'b',  
+        (7, 3): 'q',  
+        (7, 4): 'k',  
+        (7, 5): 'b',  
+        (7, 6): 'n',  
+        (7, 7): 'r',  
+        (6, 0): 'p',  
+        (6, 1): 'p',  
+        (6, 2): 'p',  
+        (6, 3): 'p',  
+        (6, 4): 'p',  
+        (6, 5): 'p',  
+        (6, 6): 'p',  
+        (6, 7): 'p',  
+    }
+
+    for (r, c), piece in piece_positions.items():
+        top_left, bottom_right = cords[r, c]
+        piece_img = piece_img[piece]
+        place_piece(cords, piece_img, top_left, bottom_right)
+
+
+def place_piece(frame, piece_img, top_left, bottom_right):
+    piece_img_resized = cv2.resize(piece_img, (50,50))#
+    print(frame)
+    quit()
+    frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = piece_img_resized
+    # frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = piece_img_resized
+
 
 def main():
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
