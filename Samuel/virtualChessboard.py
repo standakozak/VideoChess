@@ -17,24 +17,24 @@ def draw_virtual_chessboard(frame, width, height, square_size=50, board_size=(8,
 
             coordinates[r, c] = [top_left, bottom_right]
     # print(coordinates)
-    start_position(coordinates)
-    quit()
+    start_position(frame, coordinates)
+    #quit()
 
-def start_position(cords):
+def start_position(frame, cords):
     piece_img = {
-        'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
-        'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
-        'N': cv2.imread(r'Samuel\img\white\knight.png', cv2.IMREAD_UNCHANGED), 
-        'P': cv2.imread(r'Samuel\img\white\pawn.png', cv2.IMREAD_UNCHANGED),
-        'Q': cv2.imread(r'Samuel\img\white\queen.png', cv2.IMREAD_UNCHANGED), 
-        'R': cv2.imread(r'Samuel\img\white\rook.png', cv2.IMREAD_UNCHANGED),
+        'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_COLOR), 
+        'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_COLOR), 
+        'N': cv2.imread(r'Samuel\img\white\knight.png', cv2.IMREAD_COLOR), 
+        'P': cv2.imread(r'Samuel\img\white\pawn.png', cv2.IMREAD_COLOR),
+        'Q': cv2.imread(r'Samuel\img\white\queen.png', cv2.IMREAD_COLOR), 
+        'R': cv2.imread(r'Samuel\img\white\rook.png', cv2.IMREAD_COLOR),
 
-        'b': cv2.imread(r'Samuel\img\black\bishop.png', cv2.IMREAD_UNCHANGED), 
-        'k': cv2.imread(r'Samuel\img\black\king.png', cv2.IMREAD_UNCHANGED), 
-        'n': cv2.imread(r'Samuel\img\black\knight.png', cv2.IMREAD_UNCHANGED), 
-        'p': cv2.imread(r'Samuel\img\black\pawn.png', cv2.IMREAD_UNCHANGED),
-        'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
-        'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_UNCHANGED),
+        'b': cv2.imread(r'Samuel\img\black\bishop.png', cv2.IMREAD_COLOR), 
+        'k': cv2.imread(r'Samuel\img\black\king.png', cv2.IMREAD_COLOR), 
+        'n': cv2.imread(r'Samuel\img\black\knight.png', cv2.IMREAD_COLOR), 
+        'p': cv2.imread(r'Samuel\img\black\pawn.png', cv2.IMREAD_COLOR),
+        'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_COLOR), 
+        'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_COLOR)
     }
 
     piece_positions = {
@@ -77,14 +77,14 @@ def start_position(cords):
 
     for (r, c), piece in piece_positions.items():
         top_left, bottom_right = cords[r, c]
-        piece_img = piece_img[piece]
-        place_piece(cords, piece_img, top_left, bottom_right)
+        piece_img_np = piece_img[piece]
+        place_piece(frame, piece_img_np, top_left, bottom_right)
 
 
 def place_piece(frame, piece_img, top_left, bottom_right):
     piece_img_resized = cv2.resize(piece_img, (50,50))#
     print(frame)
-    quit()
+    #quit()
     frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = piece_img_resized
     # frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = piece_img_resized
 
@@ -98,6 +98,7 @@ def main():
         if not ret:
             break
 
+        frame = cv2.flip(frame, 1)
         draw_virtual_chessboard(frame, 640, 480)
 
         cv2.imshow('Camera Feed with Virtual Checkerboard', frame)
