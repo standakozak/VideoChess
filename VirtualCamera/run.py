@@ -10,6 +10,9 @@ import keyboard # pip install keyboard
 from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
 from basics import histogram_figure_numba
+import cv2
+import mediapipe as mp
+
 
 
 # Example function
@@ -21,8 +24,6 @@ def custom_processing(img_source_generator):
     
     for sequence in img_source_generator:
         # Call your custom processing methods here! (e. g. filters)
-        
-        
 
         # Example of keyboard is pressed
         # If you want to use this method then consider implementing a counter
@@ -30,7 +31,6 @@ def custom_processing(img_source_generator):
         # "prevent" double clicks due to high fps rates
         if keyboard.is_pressed('h') :
             print('h pressed')
-            
 
         ###
         ### Histogram overlay example (without data)
@@ -62,8 +62,8 @@ def custom_processing(img_source_generator):
 
 def main():
     # change according to your settings
-    width = 1280
-    height = 720
+    width = 640      
+    height = 480
     fps = 30
     
     # Define your virtual camera
