@@ -12,6 +12,7 @@ from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings
 from basics import histogram_figure_numba
 import cv2
 import mediapipe as mp
+from OwnHandLandmarker import OwnHandLandmarker
 
 
 
@@ -19,24 +20,36 @@ import mediapipe as mp
 # You can use this function to process the images from opencv
 # This function must be implemented as a generator function
 def custom_processing(img_source_generator):
-    mp_hands = mp.solutions.hands
+    hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
 
     for x, sequence in enumerate(img_source_generator):
-        if x % 30 == 0:
-            with mp_hands.Hands() as hands:
-                    # Process the image
-                    results = hands.process(sequence)
+        #if x % 30 == 0:
+        from OwnHandLandmarker import OwnHandLandmarker
 
-                    if results.multi_hand_landmarks:
-                        for hand_landmarks in results.multi_hand_landmarks:
 
-                            # Get the index finger tip landmark
-                            index_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                            h, w, c = sequence.shape
-                            ix, iy = int(index_tip.x * w), int(index_tip.y * h)
 
-                            # Print or use the pixel coordinates
-                            print("Index Finger Tip:", ix, iy)
+# Example function
+# You can use this function to process the images from opencv
+# This function must be implemented as a generator function
+def custom_processing(img_source_generator):
+    hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
+
+    for x, sequence in enumerate(img_source_generator):
+        if x % 10 == 0:
+            # Make a copy of the image to process
+            image_to_process = sequence.copy()
+
+            # Get the index finger tip and mcp coordinates
+            index_info = hand_landmarker.get_index_finger_info(image_to_process)
+
+            # If the index finger tip and mcp are detected in the image print the coordinates
+            if index_info is not None:
+                print("Index Finger Info:", index_info[0], index_info[1])
+
+        # Make sure to yield your processed image
+        yield sequence
+        
+
         # Make sure to yield your processed image
         yield sequence
 
