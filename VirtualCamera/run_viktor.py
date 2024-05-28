@@ -12,27 +12,30 @@ from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings
 from basics import histogram_figure_numba
 import cv2
 import mediapipe as mp
+import numpy as np
 from OwnHandLandmarker import OwnHandLandmarker
-
+from GestureRecognizer import GestureRecognizer, GestureStateHandler
 
 
 # Example function
 # You can use this function to process the images from opencv
 # This function must be implemented as a generator function
+"""
 def custom_processing(img_source_generator):
     hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
 
     for x, sequence in enumerate(img_source_generator):
         #if x % 30 == 0:
         from OwnHandLandmarker import OwnHandLandmarker
-
-
+"""
 
 # Example function
 # You can use this function to process the images from opencv
 # This function must be implemented as a generator function
 def custom_processing(img_source_generator):
     hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
+    gesture_recognizer = GestureRecognizer(model_path="Stani/gesture_recognizer.task", uses_rgb=True, flip_image=True)
+    gesture_state_handler = GestureStateHandler()
 
     for x, sequence in enumerate(img_source_generator):
         if x % 10 == 0:
@@ -44,15 +47,20 @@ def custom_processing(img_source_generator):
 
             # If the index finger tip and mcp are detected in the image print the coordinates
             if index_info is not None:
+                index_tip = np.array(index_info[0])
+                index_mcp = np.array(index_info[1])
                 print("Index Finger Info:", index_info[0], index_info[1])
+            else:
+                index_tip = index_mcp = None
+            
+            gesture_recognizer.recognize_gesture(image_to_process, index_tip, index_mcp,
+                                                 gesture_state_handler)
+
+        # Flip the image
+        sequence = cv2.flip(sequence, 1)
 
         # Make sure to yield your processed image
         yield sequence
-        
-
-        # Make sure to yield your processed image
-        yield sequence
-
 
 
 def main():
