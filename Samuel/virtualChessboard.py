@@ -2,11 +2,13 @@ import cv2
 import numpy as np
 
 class ChessBoard:
-    def __init__(self, width = 640, height = 480, square_size=50, board_size=(8, 8)):
+    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8)):
         self.width = width
         self.height = height
         self.square_size = square_size
         self.board_size = board_size
+        self.selected_piece = None
+        
         self.piece_img = {
             'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
             'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
@@ -61,12 +63,13 @@ class ChessBoard:
             (6, 7): 'P',  
         }
 
+
     def draw_virtual_chessboard(self, frame, width, height):
         board_size, square_size = self.board_size, self.square_size
-        start_x = width - int((width/2)+((board_size[0]/2)*self.square_size))
-        start_y = height - int((height/2)+((board_size[0]/2)*square_size))
+        start_x = width - int((width / 2) + ((board_size[0] / 2) * self.square_size))
+        start_y = height - int((height / 2) + ((board_size[0] / 2) * square_size))
         rows, cols = board_size
-        
+
         coordinates = np.zeros((rows, cols, 2, 2), dtype=int)
 
         for r in range(rows):
@@ -78,8 +81,9 @@ class ChessBoard:
 
                 coordinates[r, c] = [top_left, bottom_right]
 
-        frame = self.start_position(frame, coordinates)    
+        frame = self.start_position(frame, coordinates)
         return frame, coordinates
+    
 
     def start_position(self, frame, cords):
         for (r, c), piece in self.piece_positions.items():
@@ -88,33 +92,35 @@ class ChessBoard:
             frame = self.place_piece(frame, piece_img_np, top_left, bottom_right)
 
         return frame
+    
 
     def place_piece(self, frame, piece_img, top_left, bottom_right):
         piece_img_resized = cv2.resize(piece_img, (50, 50))
-        alpha_piece = piece_img_resized[:,:,3] / 255.0
+        alpha_piece = piece_img_resized[:, :, 3] / 255.0
 
         roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
 
         for color in range(0, 3):
-            roi[:,:,color] = alpha_piece * piece_img_resized[:,:,color] + (1 - alpha_piece) * roi[:,:,color]
+            roi[:, :, color] = alpha_piece * piece_img_resized[:, :, color] + (1 - alpha_piece) * roi[:, :, color]
 
         frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = roi
 
         return frame
+    
 
     def select_area(self, frame, coordinates, selected_cords):
         for c in coordinates:
             for coords in c:
                 x_min, y_min = coords[0]
                 x_max, y_max = coords[1]
-                
+
                 if x_min <= selected_cords[0] <= x_max and y_min <= selected_cords[1] <= y_max:
                     cv2.rectangle(frame, coords[0], coords[1], (0, 0, 255), 10)
                     return frame
         return frame
     
-    
-    def set_piece(self, frame, coordinates, selected_cords):
+
+    def set_piece(self, coordinates, selected_cords):
         for r in range(len(coordinates)):
             for c in range(len(coordinates[r])):
                 x_min, y_min = coordinates[r][c][0]
@@ -122,23 +128,39 @@ class ChessBoard:
 
                 if x_min <= selected_cords[0] <= x_max and y_min <= selected_cords[1] <= y_max:
                     if (r, c) in self.piece_positions:
-                        cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0, 0), 10)
+                        self.selected_piece = (r, c)
                         return (r, c), self.piece_positions[(r, c)]
         return None
+    
 
+    def move_piece(self, coordinates, selected_cords):
+        for r in range(len(coordinates)):
+            for c in range(len(coordinates[r])):
+                x_min, y_min = coordinates[r][c][0]
+                x_max, y_max = coordinates[r][c][1]
+
+                if x_min <= selected_cords[0] <= x_max and y_min <= selected_cords[1] <= y_max:
+                    if self.selected_piece:
+                        self.piece_positions[(r, c)] = self.piece_positions.pop(self.selected_piece)
+                        self.selected_piece = None
+    
 
     def main(self):
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         cap = cv2.VideoCapture(0)
 
         selected_cords = [0, 0]
+
         def on_mouse(event, x, y, flags, param):
             if event == cv2.EVENT_MOUSEMOVE:
                 selected_cords[0] = x
                 selected_cords[1] = y
 
             if event == cv2.EVENT_LBUTTONDOWN:
-                print(self.set_piece(frame, coordinate_array, selected_cords))
+                if self.selected_piece is None:
+                    pos, piece = self.set_piece(coordinate_array, selected_cords)
+                else:
+                    self.move_piece(coordinate_array, selected_cords)
 
         while True:
             ret, frame = cap.read()
@@ -156,7 +178,6 @@ class ChessBoard:
 
         cap.release()
         cv2.destroyAllWindows()
-
 
 if __name__ == '__main__':
     ChessBoard().main()
