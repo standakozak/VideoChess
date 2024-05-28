@@ -2,13 +2,16 @@ import cv2
 import numpy as np
 
 class ChessBoard:
-    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8)):
+    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), boarder_size=4):
         self.width = width
         self.height = height
         self.square_size = square_size
         self.board_size = board_size
+        self.boarder_size = boarder_size
         self.selected_piece = None
-        
+        self.selected_cords = [0,0]
+        self.coordinate_array = np.zeros((board_size[0], board_size[1], 2, 2), dtype=int)
+    
         self.piece_img = {
             'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
             'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
@@ -77,11 +80,14 @@ class ChessBoard:
                 top_left = (start_x + c * square_size, start_y + r * square_size)
                 bottom_right = (start_x + (c + 1) * square_size, start_y + (r + 1) * square_size)
                 color = (0, 0, 0) if (c + r) % 2 == 0 else (255, 255, 255)
-                cv2.rectangle(frame, top_left, bottom_right, color, 10)
+                rec_top_left = [top_left[0]+self.boarder_size//2, top_left[1]+self.boarder_size//2]
+                rec_bottom_right = [bottom_right[0]-self.boarder_size//2, bottom_right[1]-self.boarder_size//2]
+                cv2.rectangle(frame, rec_top_left, rec_bottom_right, color, self.boarder_size)
 
                 coordinates[r, c] = [top_left, bottom_right]
 
         frame = self.start_position(frame, coordinates)
+        self.coordinate_array = coordinates
         return frame, coordinates
     
 
@@ -89,12 +95,12 @@ class ChessBoard:
         for (r, c), piece in self.piece_positions.items():
             top_left, bottom_right = cords[r, c]
             piece_img_np = self.piece_img[piece]
-            frame = self.place_piece(frame, piece_img_np, top_left, bottom_right)
+            frame = self._place_piece(frame, piece_img_np, top_left, bottom_right)
 
         return frame
     
 
-    def place_piece(self, frame, piece_img, top_left, bottom_right):
+    def _place_piece(self, frame, piece_img, top_left, bottom_right):
         piece_img_resized = cv2.resize(piece_img, (50, 50))
         alpha_piece = piece_img_resized[:, :, 3] / 255.0
 
@@ -115,7 +121,7 @@ class ChessBoard:
                 x_max, y_max = coords[1]
 
                 if x_min <= selected_cords[0] <= x_max and y_min <= selected_cords[1] <= y_max:
-                    cv2.rectangle(frame, coords[0], coords[1], (0, 0, 255), 10)
+                    cv2.rectangle(frame, coords[0], coords[1], (0, 0, 255), self.boarder_size)
                     return frame
         return frame
     
@@ -143,7 +149,26 @@ class ChessBoard:
                     if self.selected_piece:
                         self.piece_positions[(r, c)] = self.piece_positions.pop(self.selected_piece)
                         self.selected_piece = None
+
+
+    def update_position(self, frame, x, y):
+            self.selected_cords[0] = x
+            self.selected_cords[1] = y
+            frame = self.select_area(frame, self.coordinate_array, self.selected_cords)
+            return frame
     
+
+    def reset_piece(self):
+        self.selected_piece = None
+
+
+    def select_piece(self):
+        self.set_piece(self.coordinate_array, self.selected_cords)
+
+    
+    def place_piece(self):
+        self.move_piece(self.coordinate_array, self.selected_cords)
+
 
     def main(self):
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -151,10 +176,11 @@ class ChessBoard:
 
         selected_cords = [0, 0]
 
-        def on_mouse(event, x, y, flags, param):
+        def on_mouse(event, x, y, flags, params):
             if event == cv2.EVENT_MOUSEMOVE:
                 selected_cords[0] = x
                 selected_cords[1] = y
+                # frame = self.select_area(frame, coordinate_array, selected_cords)
 
             if event == cv2.EVENT_LBUTTONDOWN:
                 if self.selected_piece is None:
