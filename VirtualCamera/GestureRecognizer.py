@@ -67,6 +67,8 @@ class GestureStateHandler:
         else:
             self.current_gesture_state = GestureState(state, gesture)
 
+        self.unresolved_state_change = False
+
     def get_gesture_and_state(recognition_result) -> GestureState:
         if recognition_result is None or len(recognition_result.gestures) == 0:
             return GestureState(HandGestureState.NONE, "")
@@ -86,9 +88,15 @@ class GestureStateHandler:
     def update_from_recognition_result(self, recognition_result):
         self.update_gesture_state(GestureStateHandler.get_gesture_and_state(recognition_result))
         
-        self.resolve_hand_gesture_state_change()
+        state_changed = self.resolve_hand_gesture_state_change()
+        if state_changed:
+            self.unresolved_state_change = True
+        
+    def get_unresolved_state_change(self) -> bool:
+        return_state = self.unresolved_state_change
+        self.unresolved_state_change = False
+        return return_state
 
-    
     def resolve_hand_gesture_state_change(self) -> bool:
         if (self.current_gesture_state.state != self.last_gesture_state.state and
              self.current_gesture_state.state != HandGestureState.NONE):
