@@ -12,6 +12,7 @@ import numpy as np
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+from numba import njit
 
 mp_hands = mp.solutions.hands
 
@@ -119,7 +120,8 @@ def get_index_finger_tip_and_mcp(image: MatLike, hands: mp.solutions.hands.Hands
         mcp_ix, mcp_iy = int(index_mcp.x * w), int(index_mcp.y * h)
 
         return (tip_ix, tip_iy), (mcp_ix, mcp_iy)
-    
+
+@njit
 def get_angle_between_vectors(v, w):
     return np.arccos(v.dot(w) / np.linalg.norm(v) * np.linalg.norm(w))
 
@@ -132,9 +134,9 @@ def rotate_image(image, angle, rotation_center):
     return result
 
 
-def rotate_by_index_finger(image: MatLike, index_top: np.ndarray, index_bottom: np.ndarray) -> MatLike:
-    finger_vector = index_top - index_bottom
-    basis_vector = np.array((0, -1))
+def rotate_by_index_finger(image: np.ndarray, index_top: np.ndarray, index_bottom: np.ndarray) -> np.ndarray:
+    finger_vector = (index_top - index_bottom).astype(float)
+    basis_vector = np.array((0.0, -1.0))
 
     angle = get_angle_between_vectors(finger_vector, basis_vector)
 

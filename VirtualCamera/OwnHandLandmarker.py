@@ -22,9 +22,6 @@ class OwnHandLandmarker:
     # image: The image in which the index finger tip and mcp are to be detected
     def get_index_finger_info(self, image):
 
-        # Flip the image horizontally
-        image = cv2.flip(image, 1)
-
         # Process the image using the MediaPipe representation of an image
         image = mp.Image(image_format = mp.ImageFormat.SRGB, data = image)
 
