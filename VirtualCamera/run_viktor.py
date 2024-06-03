@@ -33,7 +33,7 @@ def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: Ches
 
 
 def custom_processing(img_source_generator):
-    hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
+    #hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
     gesture_recognizer = GestureRecognizer(model_path="Stani/gesture_recognizer.task", uses_rgb=True, flip_image=False)
     gesture_state_handler = GestureStateHandler()
     chessBoard = ChessBoard(640, 480, square_size=50, border_size=4)
@@ -44,34 +44,33 @@ def custom_processing(img_source_generator):
 
     # Initialize the chessboard position
     chessboard_pos_x, chessboard_pos_y = -50, -50
+    index_tip, index_mcp = (None, None)
 
     for x, sequence in enumerate(img_source_generator):
         # Flip the image
         image_to_show = cv2.flip(sequence, 1).copy()
 
         # Speed up performance by ignoring frames
-        if x % 3 == 0 and keyPresser.get_last_key() == 'h':
+        if x % 1 == 0 and keyPresser.get_last_key() == 'h':
             # Make a copy of the image to process
             image_to_process = image_to_show.copy()
             
             # Get the index finger tip and mcp coordinates
-            index_info = hand_landmarker.get_index_finger_info(image_to_process)
-
+            #index_info = hand_landmarker.get_index_finger_info(image_to_process)
+            # hh
             # If the index finger tip and mcp are detected in the image print the coordinates
-            if index_info is not None:
-                #print("Index Finger Info:", index_info[0], index_info[1])
+
+            _, index_info = gesture_recognizer.recognize_gesture(image_to_process,
+                                                        index_tip,
+                                                        index_mcp, gesture_state_handler
+                                                    )
+            if index_info[0] is not None and index_info[1] is not None:
                 index_tip = np.array(index_info[0])
                 index_mcp = np.array(index_info[1])
-
                 chessboard_pos_x, chessboard_pos_y = index_info[0][0], index_info[0][1]
             else:
                 index_tip, index_mcp = (None, None)
                 chessboard_pos_x, chessboard_pos_y = -50, -50
-
-            gesture_recognizer.recognize_gesture(image_to_process,
-                                                        index_tip,
-                                                        index_mcp, gesture_state_handler
-                                                    )
         
         if keyPresser.get_last_key() == 'h':
             # Do every frame

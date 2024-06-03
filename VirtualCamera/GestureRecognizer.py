@@ -12,7 +12,6 @@ import numpy as np
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from numba import njit
 
 mp_hands = mp.solutions.hands
 
@@ -121,7 +120,7 @@ def get_index_finger_tip_and_mcp(image: MatLike, hands: mp.solutions.hands.Hands
 
         return (tip_ix, tip_iy), (mcp_ix, mcp_iy)
 
-@njit
+
 def get_angle_between_vectors(v, w):
     return np.arccos(v.dot(w) / np.linalg.norm(v) * np.linalg.norm(w))
 
@@ -146,11 +145,12 @@ def rotate_by_index_finger(image: np.ndarray, index_top: np.ndarray, index_botto
     angle = np.rad2deg(angle * rotation_orientation)
     
     rotated_image = rotate_image(image, angle, index_top)
-    return rotated_image
+    return rotated_image, angle
 
 
 def preprocess_image(image, uses_rgb=False, flip_image=True, 
                      finger_tip_pos: np.ndarray[int] = None, finger_mcp_pos: np.ndarray[int] = None):
+    angle_deg = 0
     # Convert the image from BGR to RGB
     if not uses_rgb:
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -160,11 +160,47 @@ def preprocess_image(image, uses_rgb=False, flip_image=True,
         image = cv2.flip(image, 1)
 
     if finger_tip_pos is not None and finger_mcp_pos is not None:
-        rotated_image = rotate_by_index_finger(image, finger_tip_pos, finger_mcp_pos)
+        rotated_image, angle_deg = rotate_by_index_finger(image, finger_tip_pos, finger_mcp_pos)
     
         if rotated_image is not None:
             image = rotated_image
-    return image
+    return image, angle_deg
+
+def rotate_vector(vector, angle_deg, center_of_rotation):
+    centered_vector = vector - center_of_rotation
+    theta = np.radians(angle_deg)
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array(((c, -s), (s, c)))
+    return ((R @ centered_vector) + center_of_rotation).astype(int)
+
+def get_hand_landmarks(recognition_result, image_width, image_height, rotation_vector):
+    if recognition_result.hand_landmarks is not None:
+        for hand_landmark in recognition_result.hand_landmarks:
+            # Get the index finger tip landmark
+            index_tip = hand_landmark[mp.solutions.hands.HandLandmark.INDEX_FINGER_TIP]
+
+            # Get the index finger mcp landmark
+            index_mcp = hand_landmark[mp.solutions.hands.HandLandmark.INDEX_FINGER_MCP]
+
+            # Get the x and y coordinates of the index finger tip
+            index_ix, index_iy = int(index_tip.x * image_width), int(index_tip.y * image_height)
+
+            # Get the x and y coordinates of the index finger mcp
+            mcp_ix, mcp_iy = int(index_mcp.x * image_width), int(index_mcp.y * image_height)
+
+            index_tip_np = np.array([index_ix, index_iy])
+            index_mcp_np = np.array([mcp_ix, mcp_iy])
+
+            image_center = np.array((image_width, image_height)) / 2
+
+            return (rotate_vector(index_tip_np, rotation_vector, image_center), rotate_vector(index_mcp_np, rotation_vector, image_center))
+
+            return (index_ix, index_iy), (mcp_ix, mcp_iy)
+        return None, None
+        
+    else:
+        return None, None
+        
 
 
 class GestureRecognizer:
@@ -178,13 +214,14 @@ class GestureRecognizer:
 
     def recognize_gesture(self, image, finger_tip_pos: np.ndarray[int], 
                           finger_mcp_pos: np.ndarray[int], gesture_handler: GestureStateHandler):
-        preprocessed_image = preprocess_image(image, self.uses_rgb, self.flip_image, 
+        preprocessed_image, rotation = preprocess_image(image, self.uses_rgb, self.flip_image, 
                                               finger_tip_pos, finger_mcp_pos)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=preprocessed_image)
         recognition_result = self.recognizer.recognize(mp_image)
 
         gesture_handler.update_from_recognition_result(recognition_result)
-        return preprocessed_image
+        new_finger_tip, new_finger_mcp = get_hand_landmarks(recognition_result, mp_image.width, mp_image.height, rotation)
+        return preprocessed_image, (new_finger_tip, new_finger_mcp)
         
 
 if __name__ == "__main__":
@@ -196,23 +233,37 @@ if __name__ == "__main__":
 
     with mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5, 
                         max_num_hands=1, model_complexity=0) as hands:
+        index_tip = np.array((1, 0))
+        index_mcp = np.array((0, 0))
         while cap.isOpened():
             success, image = cap.read()
+            img_to_show = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2RGB)
             if not success:
                 continue
             
             #image = cv2.flip(image, 1)
-            index_finger_landmarks = get_index_finger_tip_and_mcp(image, hands)
-            if index_finger_landmarks is not None:
-                index_top = np.array((index_finger_landmarks[0][0], index_finger_landmarks[0][1]))
-                index_bottom = np.array((index_finger_landmarks[1][0], index_finger_landmarks[1][1]))
+            #index_finger_landmarks = get_index_finger_tip_and_mcp(image, hands)
+            if index_tip is None:
+                index_tip = np.array((1, 0))
+            if index_mcp is None:
+                index_mcp = np.array((0, 0))
+
+            #if index_finger_landmarks is not None:
+                #index_top = np.array((index_finger_landmarks[0][0], index_finger_landmarks[0][1]))
+                #index_bottom = np.array((index_finger_landmarks[1][0], index_finger_landmarks[1][1]))
                 
-                processed_img = gesture_recognizer.recognize_gesture(image, index_top, index_bottom,
-                                                     gesture_state_handler)
-                img_to_show = preprocess_image(image, False, False, index_top, index_bottom)
-               
-                # Display the annotated image
-                cv2.imshow('Hand Tracking', cv2.cvtColor(img_to_show, cv2.COLOR_RGB2BGR))
+            processed_img, finger_info = gesture_recognizer.recognize_gesture(image, index_tip, index_mcp,
+                                                    gesture_state_handler)
+
+            index_tip, index_mcp = finger_info
+            print(index_tip)
+            #img_to_show, _ = preprocess_image(image, False, False, index_top, index_bottom)
+            #img_to_show, _ = preprocess_image(image, False, False, None, None)
+            if index_tip is not None and index_mcp is not None:
+                img_to_show = cv2.line(img_to_show, (int(index_tip[0]), int(index_tip[1])), (int(index_mcp[0]), int(index_mcp[1])), (0, 0, 0), 5)
+
+            # Display the annotated image
+            cv2.imshow('Hand Tracking', cv2.cvtColor(cv2.flip(img_to_show, 1), cv2.COLOR_RGB2BGR))
             if cv2.waitKey(5) & 0xFF == 27:
                 break
         
