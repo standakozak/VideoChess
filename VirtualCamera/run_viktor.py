@@ -89,8 +89,6 @@ def custom_processing(img_source_generator):
             # Draw the chessboard on the imageh
             image_to_show = chessBoard.draw_board(image_to_show)
 
-        # Make sure to yield your processed image
-
         # Display statistics of the current frame
         if keyPresser.get_last_key() == 's':
             mean, std_dev, max, min = calculate_statistics(image_to_show)
@@ -114,7 +112,8 @@ def custom_processing(img_source_generator):
         # Apply a sobel edge detection filter to the image
         if keyPresser.get_last_key() == 'e':
             image_to_show = apply_sobel_filter(image_to_show)
-            
+        
+        # Make sure to yield your processed image
         yield image_to_show
 
 
