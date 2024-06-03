@@ -86,7 +86,7 @@ def custom_processing(img_source_generator):
             # Update the chessboard position
             chessBoard.update_position(chessboard_pos_x, chessboard_pos_y)
 
-            # Draw the chessboard on the imageh
+            # Draw the chessboard on the image
             image_to_show = chessBoard.draw_board(image_to_show)
 
         # Display statistics of the current frame
