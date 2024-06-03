@@ -94,6 +94,8 @@ class ChessBoard:
         
         start_pos_x = self.width - int((self.width / 2) + ((rows / 2) * self.square_size))
         start_pos_y = self.height - int((self.height / 2) + ((rows / 2) * self.square_size))
+
+        #start_pos_y = 5
         return start_pos_x, start_pos_y
     
 
@@ -206,6 +208,8 @@ class ChessBoard:
 
         Method accessible outside the class
         """
+        if self.hovered_chess_coords is None:
+            return
         if tuple(self.hovered_chess_coords) in self.piece_positions:
             self.selected_piece = tuple(self.hovered_chess_coords)
 
