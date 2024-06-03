@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from numba import jit
 
 
 def get_bgr_from_rgb(rgb_color):
@@ -7,9 +8,29 @@ def get_bgr_from_rgb(rgb_color):
     return (b, g, r)
 
 
+@jit(nopython=True)
+def overlay_pictures(background: np.ndarray, foreground: np.ndarray) -> np.ndarray:
+    # Expects non-transparent background with 3 channels and foreground with transparency values (4 channels)
+    foreground_alpha = foreground[:, :, 3] / 255.0
+
+    result = background.copy()
+    for color in range(0, 3):
+        result[:, :, color] = foreground_alpha * foreground[:, :, color] + (1 - foreground_alpha) * background[:, :, color]
+
+    return result
+
+def overlay_pictures2(background: np.ndarray, foreground: np.ndarray) -> np.ndarray:
+    foreground_mask = foreground[:, :, 3] == 255
+    result = background.copy()
+    result[foreground_mask] = foreground[foreground_mask][:, :3]
+    return result
+
+
 HOVER_SQUARE_COLOR = get_bgr_from_rgb((255, 0, 0))
 SELECTED_SQUARE_COLOR = get_bgr_from_rgb((26, 36, 130))
-BLACK_SQUARE_COLOR = get_bgr_from_rgb((0, 0, 0))
+
+# Because of the computation of transparency values, we cannot use (0, 0, 0) as a valid color
+BLACK_SQUARE_COLOR = get_bgr_from_rgb((0, 0, 1))
 WHITE_SQUARE_COLOR = get_bgr_from_rgb((255, 255, 255))
 
 class ChessBoard:
@@ -37,6 +58,11 @@ class ChessBoard:
             'p': cv2.imread(r'Samuel\img\black\pawn.png', cv2.IMREAD_UNCHANGED),
             'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
             'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_UNCHANGED)
+        }
+
+        # Resize pieces to (50, 50)
+        self.piece_img = {
+            key: cv2.resize(val, (50, 50)) for key, val in self.piece_img.items()
         }
 
         self.piece_positions = {
@@ -77,6 +103,10 @@ class ChessBoard:
             (6, 7): 'P',  
         }
 
+        self.chessboard_overlay = self.draw_virtual_chessboard_overlay()
+        self.chessboard_with_pieces_overlay = self.get_pieces_overlay()
+        self.unresolved_piece_change = False
+
     def draw_rectangle(self, frame, chess_coords: tuple[int], color: tuple[int], half_border=False):
         edited_frame = frame.copy()
         top_left, bottom_right = self.coordinate_array[chess_coords]
@@ -87,7 +117,6 @@ class ChessBoard:
 
         cv2.rectangle(edited_frame, top_left, bottom_right, color, self.border_size)
         return edited_frame
-    
 
     def get_board_top_left_corner(self):
         rows, cols = self.board_size
@@ -111,8 +140,6 @@ class ChessBoard:
         if (0 <= selected_row < self.board_size[0]) and (0 <= selected_col < self.board_size[1]):
             return (selected_row, selected_col)    
         return None
-        
-
 
     def init_coordinate_array(self):
         """
@@ -153,11 +180,37 @@ class ChessBoard:
                 color = BLACK_SQUARE_COLOR if (c + r) % 2 == 0 else WHITE_SQUARE_COLOR
                 frame = self.draw_rectangle(frame, (r, c), color, half_border=True)
 
-        frame = self.start_position(frame)
         return frame
     
+    def create_transparent_image(self, image):
+        """
+        Adds fourth channel with alpha values to a 3-channel image
+        """
+        new_shape = tuple(list(image.shape[:-1]) + [4])
+        result = np.zeros(new_shape, dtype=int)
+        result[:, :, 0:3] = image.copy()
 
-    def start_position(self, frame):
+        # Identify non-zero pixels and fill them with fully opaque values
+        alpha_mask = image[:, :, 0:3].sum(axis=2) > 0
+        result[:, :, 3][alpha_mask] = 255
+        return result
+    
+    
+    def draw_virtual_chessboard_overlay(self):
+        chess_board_untransparent = self.draw_virtual_chessboard(np.zeros((self.height, self.width, 3)))
+        chess_board_overlay = self.create_transparent_image(chess_board_untransparent)
+        return chess_board_overlay
+    
+    def get_pieces_overlay(self):
+        frame = np.zeros((self.height, self.width, 3))
+        frame = overlay_pictures2(frame, self.chessboard_overlay)
+        pieces_untransparent = self.draw_pieces(frame)
+        pieces_overlay = self.create_transparent_image(pieces_untransparent)
+
+        return pieces_overlay
+
+
+    def draw_pieces(self, frame):
         for (r, c), piece in self.piece_positions.items():
             top_left, bottom_right = self.coordinate_array[r, c]
             piece_img_np = self.piece_img[piece]
@@ -165,18 +218,21 @@ class ChessBoard:
 
         return frame
     
-
     def _place_piece(self, frame, piece_img, top_left, bottom_right):
-        piece_img_resized = cv2.resize(piece_img, (50, 50))
-        alpha_piece = piece_img_resized[:, :, 3] / 255.0
+        overlayed_frame_roi = overlay_pictures2(frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]], piece_img)
+        
+        frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = overlayed_frame_roi
+        
+        """
+        alpha_piece = piece_img[:, :, 3] / 255.0
 
         roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
 
         for color in range(0, 3):
-            roi[:, :, color] = alpha_piece * piece_img_resized[:, :, color] + (1 - alpha_piece) * roi[:, :, color]
+            roi[:, :, color] = alpha_piece * piece_img[:, :, color] + (1 - alpha_piece) * roi[:, :, color]
 
         frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = roi
-
+        """
         return frame
     
 
@@ -221,12 +277,23 @@ class ChessBoard:
         if self.selected_piece is not None:
             self.piece_positions[self.hovered_chess_coords] = self.piece_positions.pop(self.selected_piece)
             self.selected_piece = None
+            self.unresolved_piece_change = True
     
     def draw_board(self, frame):
         """
         Method accessible outside the class
         """
-        frame = self.draw_virtual_chessboard(frame)
+        # Option 1: draw chessboard in each call
+        #frame = self.draw_virtual_chessboard(frame)
+        
+        # Option 2: use pre-defined overlay
+        if self.unresolved_piece_change:
+            self.unresolved_piece_change = True
+            self.chessboard_with_pieces_overlay = self.get_pieces_overlay()
+        
+        frame = overlay_pictures2(frame, self.chessboard_with_pieces_overlay)
+        
+        #frame = self.draw_pieces(frame)
         frame = self.highlight_hovered_area(frame)
 
         frame = self.highlight_selected_piece(frame)
