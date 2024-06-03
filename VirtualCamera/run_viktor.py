@@ -9,7 +9,8 @@ import keyboard # pip install keyboard
 
 from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
-from basics import histogram_figure_numba
+from basics_own_merged import calculate_statistics, calculate_mode, calculate_entropy, equalize_histogram, plot_histogram
+from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_linear_transformation
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -31,26 +32,31 @@ def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: Ches
 
 
 def custom_processing(img_source_generator):
+    # Initialize the objects used for the VideoChess implementation
     hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
     gesture_recognizer = GestureRecognizer(model_path="Stani/gesture_recognizer.task", uses_rgb=True, flip_image=True)
     gesture_state_handler = GestureStateHandler()
     chessBoard = ChessBoard(640, 480, square_size=50, border_size=4)
+    # Initialize the chessboard position
+    chessboard_pos_x, chessboard_pos_y = -50, -50
 
     # Initialize the key presser and set up the hook on the keyboard events
     keyPresser = KeyPressed()
     keyboard.on_press(keyPresser.on_key_event)
 
-    # Initialize the chessboard position
-    chessboard_pos_x, chessboard_pos_y = -50, -50
+    # Initialize the histogram figure
+    fig, ax, background, r_plot, g_plot, b_plot = initialize_hist_figure()
+    
 
     for x, sequence in enumerate(img_source_generator):
         image_to_show = sequence.copy()
         # Flip the image
         image_to_show = cv2.flip(image_to_show, 1).copy()
 
+        # Implementation of the VideoChess
         # Speed up performance by ignoring frames
-        if x % 3 == 0 and keyPresser.get_last_key() == 'h':
-            # Make a copy of the image to process
+        if x % 3 == 0 and keyPresser.get_last_key() == 'c':
+            # Make a copy of the image to process during the hand gesture recognition
             image_to_process = sequence.copy()
             
             # Get the index finger tip and mcp coordinates
@@ -72,7 +78,7 @@ def custom_processing(img_source_generator):
                                                         index_mcp, gesture_state_handler
                                                     )
         
-        if keyPresser.get_last_key() == 'h':
+        if keyPresser.get_last_key() == 'c':
             # Do every frame
             # Update the gesture state
             resolve_gesture_state(gesture_state_handler, chessBoard)
@@ -84,6 +90,31 @@ def custom_processing(img_source_generator):
             image_to_show = chessBoard.draw_board(image_to_show)
 
         # Make sure to yield your processed image
+
+        # Display statistics of the current frame
+        if keyPresser.get_last_key() == 's':
+            mean, std_dev, max, min = calculate_statistics(image_to_show)
+            mode = calculate_mode(image_to_show)
+            strings_of_stats_to_display = ["Mean: ", str(mean), "Std Dev: ", str(std_dev), "Max: ", str(max), "Min: ", str(min), "Mode: ", str(mode)]
+            image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display)
+
+        # Display the histogram of the current frame
+        if keyPresser.get_last_key() == 'h':
+            # Load the histogram values
+            image_to_show = plot_histogram(image_to_show, ax)
+
+        # Apply a linear transformation to the image
+        if keyPresser.get_last_key() == 'l':
+            image_to_show = apply_linear_transformation(image_to_show, 2)
+
+        # Apply a gabor filter to the image
+        if keyPresser.get_last_key() == 'g':
+            image_to_show = apply_gabor_filter(image_to_show)
+
+        # Apply a sobel edge detection filter to the image
+        if keyPresser.get_last_key() == 'e':
+            image_to_show = apply_sobel_filter(image_to_show)
+            
         yield image_to_show
 
 

@@ -9,7 +9,7 @@ import keyboard # pip install keyboard
 
 from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
-from basics import histogram_figure_numba
+from VirtualCamera.basics_given import histogram_figure_numba
 import cv2
 import mediapipe as mp
 
