@@ -45,6 +45,8 @@ def custom_processing(img_source_generator):
 
     for x, sequence in enumerate(img_source_generator):
         image_to_show = sequence.copy()
+        # Flip the image
+        image_to_show = cv2.flip(image_to_show, 1).copy()
 
         # Speed up performance by ignoring frames
         if x % 3 == 0 and keyPresser.get_last_key() == 'h':
@@ -78,11 +80,8 @@ def custom_processing(img_source_generator):
             # Update the chessboard position
             chessBoard.update_position(chessboard_pos_x, chessboard_pos_y)
 
-            # Draw the chessboard on the image
+            # Draw the chessboard on the imageh
             image_to_show = chessBoard.draw_board(image_to_show)
-
-        # Flip the image
-        image_to_show = cv2.flip(sequence, 1).copy()
 
         # Make sure to yield your processed image
         yield image_to_show
