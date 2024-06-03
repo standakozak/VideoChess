@@ -17,6 +17,19 @@ from OwnHandLandmarker import OwnHandLandmarker
 from GestureRecognizer import GestureRecognizer, GestureStateHandler, HandGestureState
 from virtualChessboard import ChessBoard
 
+# This class is used to store the last key pressed and reset it
+class KeyPressed:
+    def __init__(self):
+        self.last_key = None
+
+    def on_key_event(self, event):
+        self.last_key = event.name
+
+    def get_last_key(self):
+        return self.last_key
+
+    def reset_key(self):
+        self.last_key = None
 
 def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: ChessBoard):
     if not gesture_handler.resolve_hand_gesture_state_change():
@@ -36,11 +49,18 @@ def custom_processing(img_source_generator):
     gesture_state_handler = GestureStateHandler()
     chessBoard = ChessBoard(640, 480, square_size=50, border_size=4)
 
+    # Initialize the key presser and set up the hook on the keyboard events
+    keyPresser = KeyPressed()
+    keyboard.on_press(keyPresser.on_key_event)
+
+    # Initialize the chessboard position
     chessboard_pos_x, chessboard_pos_y = -50, -50
 
     for x, sequence in enumerate(img_source_generator):
+        image_to_show = sequence.copy()
+
         # Speed up performance by ignoring frames
-        if x % 3 == 0:
+        if x % 3 == 0 and keyPresser.get_last_key() == 'h':
             # Make a copy of the image to process
             image_to_process = sequence.copy()
             
@@ -63,13 +83,14 @@ def custom_processing(img_source_generator):
                                                         index_mcp, gesture_state_handler
                                                     )
         
-        # Do every frame        
-        # Flip the image
-        image_to_show = cv2.flip(sequence, 1).copy()
-        resolve_gesture_state(gesture_state_handler, chessBoard)
+        if keyPresser.get_last_key() == 'h':
+            # Do every frame        
+            # Flip the image
+            image_to_show = cv2.flip(sequence, 1).copy()
+            resolve_gesture_state(gesture_state_handler, chessBoard)
 
-        chessBoard.update_position(chessboard_pos_x, chessboard_pos_y)
-        image_to_show = chessBoard.draw_board(image_to_show)
+            chessBoard.update_position(chessboard_pos_x, chessboard_pos_y)
+            image_to_show = chessBoard.draw_board(image_to_show)
 
         # Make sure to yield your processed image
         yield image_to_show
