@@ -16,20 +16,7 @@ import numpy as np
 from OwnHandLandmarker import OwnHandLandmarker
 from GestureRecognizer import GestureRecognizer, GestureStateHandler, HandGestureState
 from virtualChessboard import ChessBoard
-
-# This class is used to store the last key pressed and reset it
-class KeyPressed:
-    def __init__(self):
-        self.last_key = None
-
-    def on_key_event(self, event):
-        self.last_key = event.name
-
-    def get_last_key(self):
-        return self.last_key
-
-    def reset_key(self):
-        self.last_key = None
+from KeyPressed import KeyPressed
 
 def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: ChessBoard):
     if not gesture_handler.resolve_hand_gesture_state_change():
@@ -84,13 +71,18 @@ def custom_processing(img_source_generator):
                                                     )
         
         if keyPresser.get_last_key() == 'h':
-            # Do every frame        
-            # Flip the image
-            image_to_show = cv2.flip(sequence, 1).copy()
+            # Do every frame
+            # Update the gesture state
             resolve_gesture_state(gesture_state_handler, chessBoard)
 
+            # Update the chessboard position
             chessBoard.update_position(chessboard_pos_x, chessboard_pos_y)
+
+            # Draw the chessboard on the image
             image_to_show = chessBoard.draw_board(image_to_show)
+
+        # Flip the image
+        image_to_show = cv2.flip(sequence, 1).copy()
 
         # Make sure to yield your processed image
         yield image_to_show
