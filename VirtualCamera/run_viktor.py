@@ -93,8 +93,9 @@ def custom_processing(img_source_generator):
         if keyPresser.get_last_key() == 's':
             mean, std_dev, max, min = calculate_statistics(image_to_show)
             mode = calculate_mode(image_to_show)
-            strings_of_stats_to_display = ["Mean: ", str(mean), "Std Dev: ", str(std_dev), "Max: ", str(max), "Min: ", str(min), "Mode: ", str(mode)]
-            image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display)
+            entropy = calculate_entropy(image_to_show)
+            strings_of_stats_to_display = ["Mean: ", str(mean), "Std Dev: ", str(std_dev), "Max: ", str(max), "Min: ", str(min), "Mode: ", str(mode), "Entropy: ", str(entropy)]
+            image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display, (0, 0, 255), 600, 50)
 
         # Display the histogram of the current frame
         if keyPresser.get_last_key() == 'h':
