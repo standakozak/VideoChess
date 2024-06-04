@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+import chess  # pip install chess
+
 
 def get_bgr_from_rgb(rgb_color):
     r, g, b = rgb_color
@@ -11,6 +13,7 @@ HOVER_SQUARE_COLOR = get_bgr_from_rgb((255, 0, 0))
 SELECTED_SQUARE_COLOR = get_bgr_from_rgb((26, 36, 130))
 BLACK_SQUARE_COLOR = get_bgr_from_rgb((0, 0, 0))
 WHITE_SQUARE_COLOR = get_bgr_from_rgb((255, 255, 255))
+LEGAL_MOVE_SQUARE_COLOR = get_bgr_from_rgb((50, 168, 66))
 
 class ChessBoard:
     def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4):
@@ -22,6 +25,9 @@ class ChessBoard:
         self.selected_piece = None
         self.hovered_chess_coords = (0, 0)
         self.coordinate_array = self.init_coordinate_array()
+        self.board = chess.Board()
+        self.current_piece_legal_moves = []
+        self.white_move = True
     
         self.piece_img = {
             'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
@@ -38,9 +44,12 @@ class ChessBoard:
             'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
             'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_UNCHANGED)
         }
+        self.piece_img = {
+            name: cv2.resize(img, (50, 50)) for name, img in self.piece_img.items()
+        }
 
         self.piece_positions = {
-            # White pieces
+            # Black pieces
             (0, 0): 'r',  
             (0, 1): 'n',  
             (0, 2): 'b',  
@@ -58,7 +67,7 @@ class ChessBoard:
             (1, 6): 'p',  
             (1, 7): 'p',  
 
-            # Black pieces
+            # White pieces
             (7, 0): 'R',  
             (7, 1): 'N',  
             (7, 2): 'B',  
@@ -76,6 +85,14 @@ class ChessBoard:
             (6, 6): 'P',  
             (6, 7): 'P',  
         }
+
+        
+    def is_piece_white(self, coords: tuple[int]):
+        if coords not in self.piece_positions:
+            return None
+
+        piece_code = self.piece_positions[coords]
+        return piece_code == piece_code.upper()
 
     def draw_rectangle(self, frame, chess_coords: tuple[int], color: tuple[int], half_border=False):
         edited_frame = frame.copy()
@@ -167,13 +184,12 @@ class ChessBoard:
     
 
     def _place_piece(self, frame, piece_img, top_left, bottom_right):
-        piece_img_resized = cv2.resize(piece_img, (50, 50))
-        alpha_piece = piece_img_resized[:, :, 3] / 255.0
+        alpha_piece = piece_img[:, :, 3] / 255.0
 
         roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
 
         for color in range(0, 3):
-            roi[:, :, color] = alpha_piece * piece_img_resized[:, :, color] + (1 - alpha_piece) * roi[:, :, color]
+            roi[:, :, color] = alpha_piece * piece_img[:, :, color] + (1 - alpha_piece) * roi[:, :, color]
 
         frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]] = roi
 
@@ -191,6 +207,11 @@ class ChessBoard:
             frame = self.draw_rectangle(frame, self.selected_piece, SELECTED_SQUARE_COLOR, half_border=False)
         return frame
 
+    def highlight_legal_moves(self, frame):
+        for move_target in self.current_piece_legal_moves:
+            frame = self.draw_rectangle(frame, move_target, LEGAL_MOVE_SQUARE_COLOR, half_border=True)
+        return frame
+
 
     def update_position(self, x, y):
         """
@@ -201,6 +222,19 @@ class ChessBoard:
 
     def reset_piece(self):
         self.selected_piece = None
+        self.current_piece_legal_moves = []
+
+    def get_uci_from_chess_coord(self, coords):
+        return str("abcdefgh"[coords[1]] + str(8 - coords[0]))
+
+    def get_chess_coords_from_uci(self, uci):
+        second_coord = "abcdefgh".find(uci[0])
+        return (8 - int(uci[1]), second_coord)
+
+    def get_possible_moves_from_coords(self, coords):
+        coords_uci = self.get_uci_from_chess_coord(coords)
+        filtered_moves = filter(lambda x: (chess.square_name(x.from_square) == coords_uci), self.board.legal_moves)
+        return list(map(lambda move: self.get_chess_coords_from_uci(chess.square_name(move.to_square)), filtered_moves))
 
     def select_piece(self):
         """
@@ -211,22 +245,37 @@ class ChessBoard:
         if self.hovered_chess_coords is None:
             return
         if tuple(self.hovered_chess_coords) in self.piece_positions:
-            self.selected_piece = tuple(self.hovered_chess_coords)
+            if self.is_piece_white(self.hovered_chess_coords) == self.white_move:
+                self.selected_piece = self.hovered_chess_coords
+                self.current_piece_legal_moves = self.get_possible_moves_from_coords(self.selected_piece)
+
+                # TODO: delete line
+                print(self.get_possible_moves_from_coords(self.selected_piece))
 
     
     def move_piece(self):
         """
         Method accessible outside the class
         """
-        if self.selected_piece is not None:
-            self.piece_positions[self.hovered_chess_coords] = self.piece_positions.pop(self.selected_piece)
-            self.selected_piece = None
+        source = self.selected_piece
+        target = self.hovered_chess_coords
+        if source is not None and target is not None:
+            if target in self.current_piece_legal_moves:
+                self.piece_positions[target] = self.piece_positions.pop(source)
+
+                # Update chess.Board
+                self.board.push_uci(self.get_uci_from_chess_coord(source) + self.get_uci_from_chess_coord(target))
+                self.reset_piece()
+
+                # Switch moves
+                self.white_move = not self.white_move
     
     def draw_board(self, frame):
         """
         Method accessible outside the class
         """
         frame = self.draw_virtual_chessboard(frame)
+        frame = self.highlight_legal_moves(frame)
         frame = self.highlight_hovered_area(frame)
 
         frame = self.highlight_selected_piece(frame)
@@ -246,6 +295,8 @@ class ChessBoard:
                     self.select_piece()
                 else:
                     self.move_piece()
+            if event == cv2.EVENT_RBUTTONDOWN:
+                self.reset_piece()
 
         while True:
             ret, frame = cap.read()
