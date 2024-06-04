@@ -10,7 +10,7 @@ import keyboard # pip install keyboard
 from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
 from basics_own_merged import calculate_statistics, calculate_mode, calculate_entropy, equalize_histogram, plot_histogram
-from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_linear_transformation
+from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_sobel_own_implentation, apply_linear_transformation
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -115,6 +115,10 @@ def custom_processing(img_source_generator):
         # Apply a sobel edge detection filter to the image
         if keyPresser.get_last_key() == 'e':
             image_to_show = apply_sobel_filter(image_to_show)
+
+        # Apply a sobel edge detection filter to the image
+        if keyPresser.get_last_key() == 'o':
+           image_to_show = apply_sobel_own_implentation(image_to_show)
         
         # Make sure to yield your processed image
         yield image_to_show

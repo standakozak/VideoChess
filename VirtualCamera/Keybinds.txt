@@ -4,3 +4,4 @@ h: histogram
 l: Lineare Transformation
 g: Gabor Filter
 e: Sobel Edge Detection
+o: Own Sobel Edge Detection
