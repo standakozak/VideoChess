@@ -33,13 +33,12 @@ def calculate_entropy(frame):
     histogram, _ = np.histogram(frame, bins=256, range=(0, 256), density=True)
     return entropy(histogram)
 
-def apply_linear_transformation(image_array, scale_factor):
-    """Apply a simple linear transformation (scaling) to the image."""
-    height, width, _ = image_array.shape
-    new_size = (int(width * scale_factor), int(height * scale_factor))
-    image = Image.fromarray(image_array)
-    image = image.resize(new_size, Image.ANTIALIAS)
-    return np.array(image)
+def apply_linear_transformation(image_array, brightness, contrast):
+    """Apply a simple linear transformation adjusting the contrast and brightness to the image."""
+    transformed = image_array * contrast + brightness * contrast
+    transformed[transformed > 255] = 255
+    transformed[transformed < 0] = 0
+    return transformed.astype(np.uint8)
 
 def equalize_histogram(image_array):
     """Equalize the histogram of an image."""

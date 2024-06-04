@@ -104,7 +104,9 @@ def custom_processing(img_source_generator):
 
         # Apply a linear transformation to the image
         if keyPresser.get_last_key() == 'l':
-            image_to_show = apply_linear_transformation(image_to_show, 2)
+            image_to_show = apply_linear_transformation(image_to_show, 50, 1.5)
+            strings_of_stats_to_display = ["Brightness c1: ", "50", "Contrast c2: ", "1.5"]
+            image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display, (0, 255, 0), 600, 50)
 
         # Apply a gabor filter to the image
         if keyPresser.get_last_key() == 'g':
