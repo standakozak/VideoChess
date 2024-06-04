@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 
 import chess  # pip install chess
+import chess.engine
+import asyncio
 
 
 def get_bgr_from_rgb(rgb_color):
@@ -16,7 +18,7 @@ WHITE_SQUARE_COLOR = get_bgr_from_rgb((255, 255, 255))
 LEGAL_MOVE_SQUARE_COLOR = get_bgr_from_rgb((50, 168, 66))
 
 class ChessBoard:
-    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4):
+    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4, use_stockfish=True):
         self.width = width
         self.height = height
         self.square_size = square_size
@@ -28,7 +30,12 @@ class ChessBoard:
         self.board = chess.Board()
         self.current_piece_legal_moves = []
         self.white_move = True
-    
+
+        self.engine = None
+        if use_stockfish:
+            #asyncio.run(self.init_engine())
+            self.init_engine()
+
         self.piece_img = {
             'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
             'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
@@ -86,6 +93,8 @@ class ChessBoard:
             (6, 7): 'P',  
         }
 
+    def init_engine(self):
+        self.engine = chess.engine.SimpleEngine.popen_uci(r"stockfish\stockfish-windows-x86-64-avx2.exe")
         
     def is_piece_white(self, coords: tuple[int]):
         if coords not in self.piece_positions:
@@ -249,18 +258,14 @@ class ChessBoard:
                 self.selected_piece = self.hovered_chess_coords
                 self.current_piece_legal_moves = self.get_possible_moves_from_coords(self.selected_piece)
 
-                # TODO: delete line
-                print(self.get_possible_moves_from_coords(self.selected_piece))
-
-    
-    def move_piece(self):
+    def move_piece(self, ignore_legal_moves=False):
         """
         Method accessible outside the class
         """
         source = self.selected_piece
         target = self.hovered_chess_coords
         if source is not None and target is not None:
-            if target in self.current_piece_legal_moves:
+            if ignore_legal_moves or target in self.current_piece_legal_moves:
                 self.piece_positions[target] = self.piece_positions.pop(source)
 
                 # Update chess.Board
@@ -270,6 +275,17 @@ class ChessBoard:
                 # Switch moves
                 self.white_move = not self.white_move
     
+    def engine_move(self):
+        if self.engine is not None and not self.white_move:
+            engine_result = self.engine.play(self.board, chess.engine.Limit(time=0.1))
+            engine_move = engine_result.move
+            source_square = self.get_chess_coords_from_uci(chess.square_name(engine_move.from_square))
+            target_square = self.get_chess_coords_from_uci(chess.square_name(engine_move.to_square))
+
+            self.selected_piece = source_square
+            self.hovered_chess_coords = target_square
+            self.move_piece(ignore_legal_moves=True)
+
     def draw_board(self, frame):
         """
         Method accessible outside the class
@@ -295,6 +311,8 @@ class ChessBoard:
                     self.select_piece()
                 else:
                     self.move_piece()
+                    #asyncio.run(self.engine_move())
+                    self.engine_move()
             if event == cv2.EVENT_RBUTTONDOWN:
                 self.reset_piece()
 

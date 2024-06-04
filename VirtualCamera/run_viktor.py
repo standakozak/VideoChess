@@ -19,6 +19,7 @@ from OwnHandLandmarker import OwnHandLandmarker
 from GestureRecognizer import GestureRecognizer, GestureStateHandler, HandGestureState
 from virtualChessboard import ChessBoard
 from KeyPressed import KeyPressed
+import asyncio
 
 def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: ChessBoard):
     if not gesture_handler.resolve_hand_gesture_state_change():
@@ -28,6 +29,8 @@ def resolve_gesture_state(gesture_handler: GestureStateHandler, chessboard: Ches
         chessboard.select_piece()
     elif gesture_handler.current_gesture_state.state == HandGestureState.EMPTY:
         chessboard.move_piece()
+        #asyncio.run(chessboard.engine_move())
+        chessboard.engine_move()
     elif gesture_handler.current_gesture_state.state == HandGestureState.RESET:
         chessboard.reset_piece()
 
