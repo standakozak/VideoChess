@@ -150,7 +150,7 @@ class ChessBoard:
 
         for r in range(rows):
             for c in range(cols):
-                color = BLACK_SQUARE_COLOR if (c + r) % 2 == 0 else WHITE_SQUARE_COLOR
+                color = WHITE_SQUARE_COLOR if (c + r) % 2 == 0 else BLACK_SQUARE_COLOR
                 frame = self.draw_rectangle(frame, (r, c), color, half_border=True)
 
         frame = self.start_position(frame)
