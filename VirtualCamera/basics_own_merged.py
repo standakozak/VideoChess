@@ -10,6 +10,7 @@ from scipy.stats import entropy
 import matplotlib.pyplot as plt
 from scipy.ndimage import sobel
 from skimage.filters import gabor
+import cv2
 
 
 @jit(nopython=True)
@@ -33,13 +34,12 @@ def calculate_entropy(frame):
     histogram, _ = np.histogram(frame, bins=256, range=(0, 256), density=True)
     return entropy(histogram)
 
-def apply_linear_transformation(image_array, scale_factor):
-    """Apply a simple linear transformation (scaling) to the image."""
-    height, width, _ = image_array.shape
-    new_size = (int(width * scale_factor), int(height * scale_factor))
-    image = Image.fromarray(image_array)
-    image = image.resize(new_size, Image.ANTIALIAS)
-    return np.array(image)
+def apply_linear_transformation(image_array, brightness, contrast):
+    """Apply a simple linear transformation adjusting the contrast and brightness to the image."""
+    transformed = image_array * contrast + brightness * contrast
+    transformed[transformed > 255] = 255
+    transformed[transformed < 0] = 0
+    return transformed.astype(np.uint8)
 
 def equalize_histogram(image_array):
     """Equalize the histogram of an image."""
@@ -72,6 +72,25 @@ def apply_sobel_filter(image_array):
     sobel_edges = np.hypot(sx, sy)
     sobel_edges = (sobel_edges / np.max(sobel_edges) * 255).astype(np.uint8)
     return np.stack([sobel_edges]*3, axis=-1)
+
+def apply_sobel_own_implentation(image_array):
+    """Apply Sobel edge detection filter to the image."""
+    # Convert the image to grayscale
+    gray_image = np.dot(image_array[..., :3], [0.299, 0.587, 0.114])
+    # Define the Sobel filters
+    vertical_edge_sobel = np.array(
+    [
+        [1, 0, -1],
+        [2, 0, -2],
+        [1, 0, -1]
+    ])
+    horizontal_edge_sobel = np.transpose(vertical_edge_sobel)
+    # Apply the Sobel filters
+    vertical_edges = cv2.filter2D(gray_image, -1, vertical_edge_sobel)
+    horizontal_edges = cv2.filter2D(gray_image, -1, horizontal_edge_sobel)
+    # Calculate the magnitude of the edges
+    sobel_edges = np.sqrt(vertical_edges**2 + horizontal_edges**2)
+    return np.stack([sobel_edges.astype(np.uint8)]*3, axis=-1)
 
 def apply_gabor_filter(image_array, frequency=0.6):
     """Apply Gabor filter to the image."""
