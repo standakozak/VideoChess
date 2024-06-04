@@ -10,8 +10,10 @@ import keyboard # pip install keyboard
 from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
 from basics_own_merged import calculate_statistics, calculate_mode, calculate_entropy, equalize_histogram, plot_histogram
-from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_sobel_own_implentation, apply_linear_transformation
+from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_sobel_own_implentation, apply_linear_transformation, apply_gabor_own_implementation
+from basics_own_merged import GABOR_VALUES_1, GABOR_VALUES_2, GABOR_VALUES_3
 import cv2
+from itertools import cycle
 import mediapipe as mp
 import numpy as np
 from OwnHandLandmarker import OwnHandLandmarker
@@ -39,6 +41,16 @@ def custom_processing(img_source_generator):
     chessBoard = ChessBoard(640, 480, square_size=50, border_size=4)
     # Initialize the chessboard position
     chessboard_pos_x, chessboard_pos_y = -50, -50
+
+    gabor_filter_values = {
+        "size":19, "lmbda":10, "theta":30, "omega":10, "sigma":10, "gamma":0.5
+    }
+    gabor_filter_increments = {
+        "size":2, "lmbda":1, "theta":10, "omega":1, "sigma":1, "gamma":0.1
+    }
+
+    gabor_settings_cycler = cycle(list(gabor_filter_values.keys()))
+    current_key = next(gabor_settings_cycler)
 
     # Initialize the key presser and set up the hook on the keyboard events
     keyPresser = KeyPressed()
@@ -109,8 +121,23 @@ def custom_processing(img_source_generator):
             image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display, (0, 255, 0), 600, 50)
 
         # Apply a gabor filter to the image
-        if keyPresser.get_last_key() == 'g':
-            image_to_show = apply_gabor_filter(image_to_show)
+        #if keyPresser.get_last_key() == 'g':
+        if keyPresser.get_last_key() == 't' and keyPresser.unresolved_key_press:
+            keyPresser.resolve_key_press()
+            current_key = next(gabor_settings_cycler)
+        if keyPresser.get_last_key() == 'u' and keyPresser.unresolved_key_press:
+            keyPresser.resolve_key_press()
+            increment = gabor_filter_increments[current_key]
+            gabor_filter_values[current_key] = gabor_filter_values[current_key] + increment
+        if keyPresser.get_last_key() == 'i' and keyPresser.unresolved_key_press:
+            keyPresser.resolve_key_press()
+            increment = gabor_filter_increments[current_key]
+            gabor_filter_values[current_key] = gabor_filter_values[current_key] - increment
+
+        image_to_show = apply_gabor_own_implementation(image_to_show, **gabor_filter_values)
+        strings_of_stats_to_display = [f"{name}: {val}" for name, val in gabor_filter_values.items()]
+        image_to_show = plot_strings_to_image(image_to_show, strings_of_stats_to_display, (0, 255, 0), 600, 50)
+
 
         # Apply a sobel edge detection filter to the image
         if keyPresser.get_last_key() == 'e':

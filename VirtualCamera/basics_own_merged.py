@@ -12,6 +12,16 @@ from scipy.ndimage import sobel
 from skimage.filters import gabor
 import cv2
 
+GABOR_VALUES_1 = {
+    "size":17, "lmbda":7, "theta":130, "omega":2, "sigma":1, "gamma":0.7
+}
+
+GABOR_VALUES_2 = {
+    "size":17, "lmbda":13, "theta":60, "omega":11, "sigma":1, "gamma":1.2
+}
+GABOR_VALUES_3 = {
+    "size":19, "lmbda":8, "theta":130, "omega":5, "sigma":2, "gamma":0.8
+}
 
 @jit(nopython=True)
 def calculate_statistics(frame):
@@ -99,3 +109,29 @@ def apply_gabor_filter(image_array, frequency=0.6):
     gabor_magnitude = np.sqrt(filt_real**2 + filt_imag**2)
     gabor_magnitude = (gabor_magnitude / np.max(gabor_magnitude) * 255).astype(np.uint8)
     return np.stack([gabor_magnitude]*3, axis=-1)
+
+
+def create_gabor_filter(size, lmbda=10, theta=30, omega=10, sigma=10, gamma=0.5):
+    theta = np.radians(theta)
+
+    center_coor = size // 2
+    xx, yy = np.mgrid[:size, :size]
+    xx -= center_coor
+    yy -= center_coor
+
+    x_prime = xx * np.cos(theta) + yy * np.sin(theta)
+    y_prime = -xx * np.sin(theta) + yy * np.cos(theta)
+
+    exp_part = np.exp(
+        -(x_prime ** 2 + gamma ** 2 * y_prime ** 2) / (2 * sigma ** 2)
+    )
+    cos_part = np.cos(2 * np.pi * (x_prime / lmbda) + omega)
+    return exp_part * cos_part
+
+
+def apply_gabor_own_implementation(image_array, size=19, lmbda=10, theta=30, omega=10, sigma=10, gamma=0.5):
+    """Apply Gabor filter to the image."""
+    image_gray =  image_array.mean(axis=2)
+    gabor_filter = create_gabor_filter(size, lmbda, theta, omega, sigma, gamma)
+    image_gabor = cv2.filter2D(image_gray, -1, gabor_filter)
+    return np.stack([image_gabor]*3, axis=-1).astype(np.uint8)
