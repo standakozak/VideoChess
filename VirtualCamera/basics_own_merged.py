@@ -45,7 +45,7 @@ def equalize_histogram(image_array):
     """Equalize the histogram of an image."""
     image = Image.fromarray(image_array)
     equalized_image = image.convert("L").point(lambda x: x * 256 // 255)
-    return np.array(equalized_image)
+    return np.stack([np.array(equalized_image).astype(np.uint8)]*3, axis=-1)
 
 def plot_histogram(image_array, ax):
     """Plot histogram for each RGB channel."""

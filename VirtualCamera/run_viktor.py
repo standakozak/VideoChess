@@ -120,6 +120,11 @@ def custom_processing(img_source_generator):
         if keyPresser.get_last_key() == 'o':
            image_to_show = apply_sobel_own_implentation(image_to_show)
         
+        # Apply histogram equalization to the image
+        if keyPresser.get_last_key() == 'p':
+            image_to_show = equalize_histogram(image_to_show)
+            image_to_show = plot_histogram(image_to_show, ax)
+
         # Make sure to yield your processed image
         yield image_to_show
 
