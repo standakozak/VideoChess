@@ -11,6 +11,7 @@ from capturing import VirtualCamera
 from overlays import initialize_hist_figure, plot_overlay_to_image, plot_strings_to_image, update_histogram
 from basics_own_merged import calculate_statistics, calculate_mode, calculate_entropy, equalize_histogram, plot_histogram
 from basics_own_merged import apply_gabor_filter, apply_sobel_filter, apply_sobel_own_implentation, apply_linear_transformation
+from basics_own_merged import apply_gabor_own_implementation, GABOR_VALUES_1, GABOR_VALUES_2, GABOR_VALUES_3
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -110,7 +111,7 @@ def custom_processing(img_source_generator):
 
         # Apply a gabor filter to the image
         if keyPresser.get_last_key() == 'g':
-            image_to_show = apply_gabor_filter(image_to_show)
+            image_to_show = apply_gabor_own_implementation(image_to_show, **GABOR_VALUES_2)
 
         # Apply a sobel edge detection filter to the image
         if keyPresser.get_last_key() == 'e':
