@@ -18,7 +18,7 @@ WHITE_SQUARE_COLOR = get_bgr_from_rgb((255, 255, 255))
 LEGAL_MOVE_SQUARE_COLOR = get_bgr_from_rgb((50, 168, 66))
 
 class ChessBoard:
-    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4, use_stockfish=True):
+    def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4, use_stockfish=True, engine_skill_level=20):
         self.width = width
         self.height = height
         self.square_size = square_size
@@ -34,7 +34,7 @@ class ChessBoard:
         self.engine = None
         if use_stockfish:
             #asyncio.run(self.init_engine())
-            self.init_engine()
+            self.init_engine(engine_skill_level)
 
         self.piece_img = {
             'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
@@ -93,9 +93,10 @@ class ChessBoard:
             (6, 7): 'P',  
         }
 
-    def init_engine(self):
+    def init_engine(self, skill_level):
         self.engine = chess.engine.SimpleEngine.popen_uci(r"stockfish\stockfish-windows-x86-64-avx2.exe")
-        
+        self.engine.configure({"Skill Level": skill_level})
+
     def is_piece_white(self, coords: tuple[int]):
         if coords not in self.piece_positions:
             return None
@@ -190,6 +191,32 @@ class ChessBoard:
             frame = self._place_piece(frame, piece_img_np, top_left, bottom_right)
 
         return frame
+
+    def handle_special_moves(self, source, target, piece: str):
+        # Castling detection
+        if piece.lower() == "k" and abs(source[1] - target[1]) == 2:
+            if target[1] > source[1]:
+                rook_pos = (target[0], 7)
+            else:
+                rook_pos = (target[0], 0)
+            rook_target = (target[0], (target[1] + source[1]) // 2)
+
+            self.piece_positions[rook_target] = self.piece_positions.pop(rook_pos)
+
+        # En passant detection
+        elif piece.lower() == "p" and source[1] != target[1] and target not in self.piece_positions.keys():
+            removed_piece_pos = (source[0], target[1])
+            del self.piece_positions[removed_piece_pos]
+
+        # Promotion detection
+        elif piece.lower() == "p" and target[0] in (0, 7):
+            new_piece = "q"
+            if self.is_piece_white(source):
+                new_piece = "Q"
+            self.piece_positions[source] = new_piece
+            return True
+        return False
+                
     
 
     def _place_piece(self, frame, piece_img, top_left, bottom_right):
@@ -266,10 +293,15 @@ class ChessBoard:
         target = self.hovered_chess_coords
         if source is not None and target is not None:
             if ignore_legal_moves or target in self.current_piece_legal_moves:
+                has_promoted = self.handle_special_moves(source, target, self.piece_positions[source])
                 self.piece_positions[target] = self.piece_positions.pop(source)
 
                 # Update chess.Board
-                self.board.push_uci(self.get_uci_from_chess_coord(source) + self.get_uci_from_chess_coord(target))
+                uci = self.get_uci_from_chess_coord(source) + self.get_uci_from_chess_coord(target)
+                if has_promoted:
+                    # Automatic promotion to a queen
+                    uci += "q"
+                self.board.push_uci(uci)
                 self.reset_piece()
 
                 # Switch moves
@@ -333,4 +365,4 @@ class ChessBoard:
         cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    ChessBoard().main()
+    ChessBoard(engine_skill_level=0, use_stockfish=False).main()

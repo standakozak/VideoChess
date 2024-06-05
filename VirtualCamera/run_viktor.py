@@ -40,7 +40,7 @@ def custom_processing(img_source_generator):
     hand_landmarker = OwnHandLandmarker(model_path="Viktor/hand_landmarker.task")
     gesture_recognizer = GestureRecognizer(model_path="Stani/gesture_recognizer.task", uses_rgb=True, flip_image=True)
     gesture_state_handler = GestureStateHandler()
-    chessBoard = ChessBoard(640, 480, square_size=50, border_size=4)
+    chessBoard = ChessBoard(640, 480, square_size=50, border_size=4, use_stockfish=True, engine_skill_level=0)
     # Initialize the chessboard position
     chessboard_pos_x, chessboard_pos_y = -50, -50
 
