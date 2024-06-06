@@ -2,6 +2,7 @@ c: Schach
 s: Statistiken des Bildes
 h: histogram
 l: Lineare Transformation
-g: Gabor Filter
+g: Gabor Filter # 1
+f: Gabor Filter # 2
 e: Sobel Edge Detection
 o: Own Sobel Edge Detection
