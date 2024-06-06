@@ -3,6 +3,7 @@ s: Statistiken des Bildes
 h: Histogram
 p: Histogram Equalization
 l: Lineare Transformation
-g: Gabor Filter
+g: Gabor Filter #1
+f: Gabor Filter #2
 e: Sobel Edge Detection
 o: Own Sobel Edge Detection

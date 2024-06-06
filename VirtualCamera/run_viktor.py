@@ -111,6 +111,10 @@ def custom_processing(img_source_generator):
 
         # Apply a gabor filter to the image
         if keyPresser.get_last_key() == 'g':
+            image_to_show = apply_gabor_own_implementation(image_to_show, **GABOR_VALUES_1)
+        
+        # Apply a gabor filter to the image
+        if keyPresser.get_last_key() == 'f':
             image_to_show = apply_gabor_own_implementation(image_to_show, **GABOR_VALUES_2)
 
         # Apply a sobel edge detection filter to the image
