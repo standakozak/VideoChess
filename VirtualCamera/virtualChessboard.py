@@ -7,6 +7,7 @@ import asyncio
 
 
 def get_bgr_from_rgb(rgb_color):
+    # Transforming from BGR to RGB colorscheme
     r, g, b = rgb_color
     return (b, g, r)
 
@@ -19,6 +20,13 @@ LEGAL_MOVE_SQUARE_COLOR = get_bgr_from_rgb((50, 168, 66))
 
 class ChessBoard:
     def __init__(self, width=640, height=480, square_size=50, board_size=(8, 8), border_size=4, use_stockfish=True, engine_skill_level=20):
+        """ 
+        Initializes the ChessBoard class with given parameters or defaults. 
+        Like size of chessboard, stockfish plugin, etc.
+        Also the pictures of all pieces where loaded and the position of
+        each piece, so it can be updatet all the time   
+        """
+        
         self.width = width
         self.height = height
         self.square_size = square_size
@@ -93,18 +101,30 @@ class ChessBoard:
             (6, 7): 'P',  
         }
 
+
     def init_engine(self, skill_level):
+        """ 
+        Initializes and configures the Stockfish chess engine for the ChessBoard.   
+        """
         self.engine = chess.engine.SimpleEngine.popen_uci(r"stockfish\stockfish-windows-x86-64-avx2.exe")
         self.engine.configure({"Skill Level": skill_level})
 
+
     def is_piece_white(self, coords: tuple[int]):
+        """ 
+        Determines if the piece at the given coordinates is white.  
+        """
         if coords not in self.piece_positions:
             return None
 
         piece_code = self.piece_positions[coords]
         return piece_code == piece_code.upper()
 
+
     def draw_rectangle(self, frame, chess_coords: tuple[int], color: tuple[int], half_border=False):
+        """ 
+        Draws a rectangle on the provided frame based on the size of the board
+        """
         edited_frame = frame.copy()
         top_left, bottom_right = self.coordinate_array[chess_coords]
         
@@ -117,6 +137,9 @@ class ChessBoard:
     
 
     def get_board_top_left_corner(self):
+        """ 
+        Calculates the top-left corner coordinates of the chessboard 
+        """
         rows, cols = self.board_size
         
         start_pos_x = self.width - int((self.width / 2) + ((rows / 2) * self.square_size))
@@ -128,6 +151,7 @@ class ChessBoard:
 
     def get_chess_coords_from_pos(self, x, y):
         """
+        Checks in which square the given coordinate is
         Returns tuple[int] | None
         """
         start_x, start_y = self.get_board_top_left_corner()
@@ -138,7 +162,6 @@ class ChessBoard:
         if (0 <= selected_row < self.board_size[0]) and (0 <= selected_col < self.board_size[1]):
             return (selected_row, selected_col)    
         return None
-        
 
 
     def init_coordinate_array(self):
@@ -172,7 +195,11 @@ class ChessBoard:
         return final_arr
         """
 
+
     def draw_virtual_chessboard(self, frame):
+        """
+        Draws the chessboard grid on the provided frame.
+        """
         rows, cols = self.board_size
 
         for r in range(rows):
@@ -185,6 +212,9 @@ class ChessBoard:
     
 
     def start_position(self, frame):
+        """
+        Places the initial pieces on the chessboard according to the standard starting position.
+        """
         for (r, c), piece in self.piece_positions.items():
             top_left, bottom_right = self.coordinate_array[r, c]
             piece_img_np = self.piece_img[piece]
@@ -192,7 +222,11 @@ class ChessBoard:
 
         return frame
 
+
     def handle_special_moves(self, source, target, piece: str):
+        """
+        Handles special chess moves such as castling, en passant, and pawn promotion.
+        """
         # Castling detection
         if piece.lower() == "k" and abs(source[1] - target[1]) == 2:
             if target[1] > source[1]:
@@ -217,9 +251,11 @@ class ChessBoard:
             return True
         return False
                 
-    
 
     def _place_piece(self, frame, piece_img, top_left, bottom_right):
+        """
+        Places a a chess piece image onto the specified position on the frame
+        """
         alpha_piece = piece_img[:, :, 3] / 255.0
 
         roi = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
@@ -233,17 +269,27 @@ class ChessBoard:
     
 
     def highlight_hovered_area(self, frame):
+        """
+        Highlights the currently hovered chessboard square on the frame.
+        """
         if self.hovered_chess_coords is not None:
             return self.draw_rectangle(frame, self.hovered_chess_coords, HOVER_SQUARE_COLOR, half_border=False)
-        
         return frame
     
+
     def highlight_selected_piece(self, frame):
+        """
+        Highlights the currently selected chessboard square on the frame
+        """
         if self.selected_piece is not None:
             frame = self.draw_rectangle(frame, self.selected_piece, SELECTED_SQUARE_COLOR, half_border=False)
         return frame
+    
 
     def highlight_legal_moves(self, frame):
+        """
+        Highlights all legalmoves on chessboard based of the selected piece
+        """
         for move_target in self.current_piece_legal_moves:
             frame = self.draw_rectangle(frame, move_target, LEGAL_MOVE_SQUARE_COLOR, half_border=True)
         return frame
@@ -257,20 +303,36 @@ class ChessBoard:
     
 
     def reset_piece(self):
+        """
+        Reset a selection of a chess piece
+        """
         self.selected_piece = None
         self.current_piece_legal_moves = []
 
+
     def get_uci_from_chess_coord(self, coords):
+        """
+        Converts chessboard coordinates to Universal Chess Interface (UCI) notation.
+        """
         return str("abcdefgh"[coords[1]] + str(8 - coords[0]))
+    
 
     def get_chess_coords_from_uci(self, uci):
+        """
+        Converts Universal Chess Interface (UCI) notation to chessboard coordinates.
+        """
         second_coord = "abcdefgh".find(uci[0])
         return (8 - int(uci[1]), second_coord)
+    
 
     def get_possible_moves_from_coords(self, coords):
+        """
+        Retrieves all possible destination coordinates from a given starting position on the chessboard.
+        """
         coords_uci = self.get_uci_from_chess_coord(coords)
         filtered_moves = filter(lambda x: (chess.square_name(x.from_square) == coords_uci), self.board.legal_moves)
         return list(map(lambda move: self.get_chess_coords_from_uci(chess.square_name(move.to_square)), filtered_moves))
+
 
     def select_piece(self):
         """
@@ -284,6 +346,7 @@ class ChessBoard:
             if self.is_piece_white(self.hovered_chess_coords) == self.white_move:
                 self.selected_piece = self.hovered_chess_coords
                 self.current_piece_legal_moves = self.get_possible_moves_from_coords(self.selected_piece)
+
 
     def move_piece(self, ignore_legal_moves=False):
         """
@@ -307,7 +370,11 @@ class ChessBoard:
                 # Switch moves
                 self.white_move = not self.white_move
     
+
     def engine_move(self):
+        """
+        Executes a move for the engine
+        """
         if self.engine is not None and not self.white_move:
             engine_result = self.engine.play(self.board, chess.engine.Limit(time=0.1))
             engine_move = engine_result.move
@@ -318,8 +385,11 @@ class ChessBoard:
             self.hovered_chess_coords = target_square
             self.move_piece(ignore_legal_moves=True)
 
+
     def draw_board(self, frame):
         """
+        Draws the complete chessboard with visual enhancements
+
         Method accessible outside the class
         """
         frame = self.draw_virtual_chessboard(frame)
@@ -331,6 +401,10 @@ class ChessBoard:
 
 
     def main(self):
+        """
+        Only for testing purposes inside the class.
+        It is possible to play with mouse
+        """
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         cap = cv2.VideoCapture(0)
 
