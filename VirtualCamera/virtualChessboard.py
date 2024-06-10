@@ -30,19 +30,19 @@ class ChessBoard:
         self.white_move = True
     
         self.piece_img = {
-            'B': cv2.imread(r'Samuel\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
-            'K': cv2.imread(r'Samuel\img\white\king.png', cv2.IMREAD_UNCHANGED), 
-            'N': cv2.imread(r'Samuel\img\white\knight.png', cv2.IMREAD_UNCHANGED), 
-            'P': cv2.imread(r'Samuel\img\white\pawn.png', cv2.IMREAD_UNCHANGED),
-            'Q': cv2.imread(r'Samuel\img\white\queen.png', cv2.IMREAD_UNCHANGED), 
-            'R': cv2.imread(r'Samuel\img\white\rook.png', cv2.IMREAD_UNCHANGED),
+            'B': cv2.imread(r'VirtualCamera\img\white\bishop.png', cv2.IMREAD_UNCHANGED), 
+            'K': cv2.imread(r'VirtualCamera\img\white\king.png', cv2.IMREAD_UNCHANGED), 
+            'N': cv2.imread(r'VirtualCamera\img\white\knight.png', cv2.IMREAD_UNCHANGED), 
+            'P': cv2.imread(r'VirtualCamera\img\white\pawn.png', cv2.IMREAD_UNCHANGED),
+            'Q': cv2.imread(r'VirtualCamera\img\white\queen.png', cv2.IMREAD_UNCHANGED), 
+            'R': cv2.imread(r'VirtualCamera\img\white\rook.png', cv2.IMREAD_UNCHANGED),
 
-            'b': cv2.imread(r'Samuel\img\black\bishop.png', cv2.IMREAD_UNCHANGED), 
-            'k': cv2.imread(r'Samuel\img\black\king.png', cv2.IMREAD_UNCHANGED), 
-            'n': cv2.imread(r'Samuel\img\black\knight.png', cv2.IMREAD_UNCHANGED), 
-            'p': cv2.imread(r'Samuel\img\black\pawn.png', cv2.IMREAD_UNCHANGED),
-            'q': cv2.imread(r'Samuel\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
-            'r': cv2.imread(r'Samuel\img\black\rook.png', cv2.IMREAD_UNCHANGED)
+            'b': cv2.imread(r'VirtualCamera\img\black\bishop.png', cv2.IMREAD_UNCHANGED), 
+            'k': cv2.imread(r'VirtualCamera\img\black\king.png', cv2.IMREAD_UNCHANGED), 
+            'n': cv2.imread(r'VirtualCamera\img\black\knight.png', cv2.IMREAD_UNCHANGED), 
+            'p': cv2.imread(r'VirtualCamera\img\black\pawn.png', cv2.IMREAD_UNCHANGED),
+            'q': cv2.imread(r'VirtualCamera\img\black\queen.png', cv2.IMREAD_UNCHANGED), 
+            'r': cv2.imread(r'VirtualCamera\img\black\rook.png', cv2.IMREAD_UNCHANGED)
         }
         self.piece_img = {
             name: cv2.resize(img, (50, 50)) for name, img in self.piece_img.items()
