@@ -121,9 +121,17 @@ def custom_processing(img_source_generator):
         if keyPresser.get_last_key() == 'e':
             image_to_show = apply_sobel_filter(image_to_show)
 
-        # Apply a sobel edge detection filter to the image
-        if keyPresser.get_last_key() == 'o':
-           image_to_show = apply_sobel_own_implentation(image_to_show)
+        # Apply a sobel edge detection filter both axes to the image
+        if keyPresser.get_last_key() == 'b':
+           image_to_show = apply_sobel_own_implentation(image_to_show, mode=0)
+        
+        # Apply a sobel edge detection filter on the x axis to the image
+        if keyPresser.get_last_key() == 'x':
+            image_to_show = apply_sobel_own_implentation(image_to_show, mode=1)
+        
+        # Apply a sobel edge detection filter on the y axis to the image
+        if keyPresser.get_last_key() == 'y':
+            image_to_show = apply_sobel_own_implentation(image_to_show, mode=2)
         
         # Apply histogram equalization to the image
         if keyPresser.get_last_key() == 'p':
